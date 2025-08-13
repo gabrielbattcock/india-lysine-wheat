@@ -27,11 +27,11 @@ data_list <- lapply(paste0("data/raw/HCES_2022_23/",file_list), haven::read_dta)
 names(data_list) <- tools::file_path_sans_ext(file_list)
 
 
-ind_state <- sf::st_read("data/raw/shapefiles//India-State-and-Country-Shapefile-Updated-Jan-2020-master/India-State-and-Country-Shapefile-Updated-Jan-2020-master/India_State_Boundary.shp")
+ind_state <- sf::st_read("data/raw/shapefiles/India-State-and-Country-Shapefile-Updated-Jan-2020-master/India_State_Boundary.shp")
 nss_region_shapefile <- sf::st_read("data/raw/shapefiles/ind_nss2223_nssregion.shp")
 
 # read in the fct
-# ind_202223_fct <-  read_xlsx("C:/Users/gabriel.battcock/OneDrive - World Food Programme/Desktop/nsso_202223_fct.xlsx")
+ind_202223_fct <-  read_xlsx("data/raw/nsso_202223_fct.xlsx")
 conversion_factor <- read_csv("data/raw/conversion_factors.csv")
 # AFE CALCUTATION ##############################################################
 
@@ -237,11 +237,11 @@ unmerged <- anti_join(food_consumption_daily_afe, ind_202223_fct, by=c("Item_Cod
 
 
 # look at the energy distribution
-hh_mn_intake %>% 
-  ggplot(aes(x = energy_kcal))+
-  geom_histogram()
+# hh_mn_intake %>% 
+#   ggplot(aes(x = energy_kcal))+
+#   geom_histogram()
 
-summary(hh_mn_intake$energy_kcal)
+# summary(hh_mn_intake$energy_kcal)
 
 
 
@@ -313,9 +313,9 @@ hh_expenditure %>%
 ### Save data
 
 
-saveRDS(hh_expenditure, file = "ind_nss2223_hh_expenditure.rds")
-saveRDS(food_consumption_daily_afe, file = "ind_nss2223_food_consumption.rds")
-# saveRDS(hh_mn_intake, file = "ind_nss2223_base_case.rds")
+saveRDS(hh_expenditure, file = "data/processed/ind_nss2223_hh_expenditure.rds")
+saveRDS(food_consumption_daily_afe, file = "data/processed/ind_nss2223_food_consumption.rds")
+# saveRDS(hh_mn_intake, file = "data/processed/ind_nss2223_base_case.rds")
 saveRDS(hh_afe, file = "data/processed/ind_nss2223_afe.rds")
 
 rm(list = ls())

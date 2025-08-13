@@ -6,5 +6,10 @@
 
 data/raw/HCES_2022_23/
 data/raw/shapefiles/
+data/processed/
+figures/
 
 data/raw/nsso_202223_fct.xlsx
+
+*.jpg
+*.png

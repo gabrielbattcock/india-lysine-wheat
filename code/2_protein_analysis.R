@@ -43,9 +43,10 @@ nss_region_shapefile <- sf::st_read("data/raw/shapefiles/ind_nss2223_nssregion.s
 food_consumption_daily_afe <- readRDS(paste0(processed_path,"ind_nss2223_food_consumption.rds"))
 hh_expenditure <- readRDS(paste0(processed_path,"ind_nss2223_hh_expenditure.rds"))
 
-# FCTs and 
-ind_202223_fct_amino_acids <- read_xlsx(paste0(raw_path,"nsso_202223_fct_protein.xlsx",sheet =1))
+# FCTs and food groups
+ind_202223_fct_amino_acids <- read_xlsx(paste0(raw_path,"nsso_202223_fct_protein.xlsx"),sheet =1)
 ind_nss_hdds <- read_xlsx(paste0(raw_path, "ind_nss2223_hdds.xlsx"),sheet = 1)
+ind_202223_fct <-  read_xlsx("data/raw/nsso_202223_fct.xlsx")
 
 # molly's database
 mol_db <- read_xlsx(paste0(raw_path,"Ileal IAA digestibility and DIAAS of world foods_Molly Muleya_November 2021_RS_14102024.xlsx"),
@@ -103,15 +104,15 @@ protein_digestibility <-
   
 adjust_lysine <- function(data, set_lysine_multiplier ) {
     
-    figure_path <<- case_when(set_lysine_multiplier == 1 ~ "figures/protein/base/",
-                              set_lysine_multiplier ==1.25 ~ "figures/protein/lysine_25/",
-                              set_lysine_multiplier ==1.5 ~ "figures/protein/lysine_50/")
+    figure_path <<- case_when(set_lysine_multiplier == 1 ~ "figures/base/",
+                              set_lysine_multiplier ==1.25 ~ "figures/lysine_25/",
+                              set_lysine_multiplier ==1.5 ~ "figures/lysine_50/")
     
     data %>%
-      left_join(ind_202223_fct %>%
-                  select(item_code, energy_kcal, protein_g),
-                by = c("Item_Code" = "item_code")) %>%
-      left_join(ind_202223_fct_amino_acids %>% select(-protein_g), by = c("Item_Code" = "item_code")) %>%
+      # left_join(ind_202223_fct %>%
+      #             select(item_code, energy_kcal, protein_g),
+      #           by = c("Item_Code" = "item_code")) %>%
+      left_join(ind_202223_fct_amino_acids, by = c("Item_Code" = "item_code")) %>%
       left_join(mol_db, by = "s_num") %>%
       left_join(protein_digestibility, by = "s_num") %>% 
       mutate(
@@ -792,4 +793,5 @@ other_aa_fg<-other_aa_prop()
 other_aa_fg <- ggpubr::ggarrange(plotlist = other_aa_fg, common.legend = TRUE)
 other_aa_fg <- ggpubr::annotate_figure(other_aa_fg, top = ggpubr::text_grob("National", face = "bold", size = 15))
 ggsave(paste0(figure_path,"other_aa_fg.png"), other_aa_fg, height = 8, width = 6)
+
 
