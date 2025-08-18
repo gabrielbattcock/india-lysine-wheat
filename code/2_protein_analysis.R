@@ -266,15 +266,16 @@ nss_region_aa_intake_sp <- nss_region_intake_aa %>%
 # intake maps 
 
 intake_map <- function(amino_acid,
-                       title = ""){
+                       title = "",
+                       unit = ""){
   
   tm_shape(ind_state) +
     tm_fill(col = "grey77") +
     tm_shape(nss_region_aa_intake_sp) +
     tm_fill(col = {{amino_acid}}, style = "cont",
             # breaks =  seq(1.4,2.8,0.4),
-            palette = "Reds",
-            title = paste({{title}},"intake"),
+            palette = wes_palette("Zissou1", 100, type = "continuous"),
+            title = paste({{title}},"intake", unit),
             legend.is.portrait = TRUE
     ) +
     tm_layout(main.title = {{title}}, frame = F,
@@ -290,9 +291,9 @@ intake_map <- function(amino_acid,
 }
 
 # Function to save intake data
-save_intake_map <- function(var_name, amino_acid) {
+save_intake_map <- function(var_name, amino_acid, unit = "") {
   # Call intake_map function (assuming it generates a plot or some output)
-  m <- intake_map(var_name, amino_acid)
+  m <- intake_map(var_name, amino_acid, unit)
   
   # Define file name and path
   file_name <- paste0(amino_acid, "_intake.png")
@@ -304,13 +305,13 @@ save_intake_map <- function(var_name, amino_acid) {
 
 
 
-save_intake_map("protein_adjust_g_median_q50", "Protein")
+save_intake_map("protein_adjust_g_median_q50", "Protein", "g")
 
 # Only calculate for the base case
 if (set_lysine_multiplier == 1) {
   amino_acids <- c(
-    "tryptophan_g_median_q50" = "Tryptophan",
-    "cystine_g_median_q50" = "Cystine",
+    "tryptophan_g_median_q50" = "Tryptophan", 
+    "cystine_g_median_q50" = "Cystine", 
     "methionine_g_median_q50" = "Methionine",
     "threonine_g_median_q50" = "Threonine",
     "histidine_g_median_q50" = "Histidine",
@@ -699,44 +700,79 @@ national_foodgroup_average <- food_group_full %>%
 prot_lys <- c(colnames(national_foodgroup_average[2:3]))
 
 
-state_prop_boxes <- function(){
-  # function reads in a state number and produces proportional box-plots
-  # 
+
+
+
+
+
+state_prop_boxes <- function(layout_algo = c("fixed", "squarified")) {
+  layout_algo <- match.arg(layout_algo)
   mn_fg_plots <- list()
-  for(item in prot_lys){
-    print(item)
-    # print({{state_num}})
-    p1 <-  national_foodgroup_average %>%
-      
-      filter( !is.na(food_group)) %>%
-      ggplot(aes(area = !!sym(item),
-                 fill = stringr::str_to_title(
-                   str_replace_all(food_group, "_", " and ")   ),
-                 label =
-                   stringr::str_to_title(
-                     str_replace_all(food_group, "_", " and ")         )
+  
+  for (item in prot_lys) {
+    message(item)
+    
+    # Prepare data ----
+    plot_data <- national_foodgroup_average %>%
+      dplyr::filter(!is.na(food_group)) %>%
+      dplyr::arrange(dplyr::desc(.data[[item]])) %>%
+      dplyr::mutate(
+        food_group_label_short =
+          stringr::str_to_title(stringr::str_replace_all(food_group, "_", " ")),
+        food_group_label_wrap = stringr::str_wrap(food_group_label_short, width = 15)
+      ) %>%
+      dplyr::mutate(
+        food_group_label_short = forcats::fct_reorder(
+          food_group_label_short, .data[[item]], .desc = TRUE
+        )
+      )
+    
+    p1 <- ggplot2::ggplot(
+      plot_data,
+      ggplot2::aes(
+        area  = .data[[item]],
+        fill  = food_group_label_short,  # legend uses single-line label
+        label = food_group_label_wrap    # tiles use wrapped label
+      )
+    ) +
+      treemapify::geom_treemap(start = "topleft", layout = layout_algo) +
+      treemapify::geom_treemap_text(
+        start = "topleft", layout = layout_algo,
+        colour = "darkblue", place = "topleft", alpha = 0.6,
+        reflow = TRUE, grow = FALSE, min.size = 6,
+        padding.x = grid::unit(1.5, "mm"),
+        padding.y = grid::unit(1.2, "mm")
+      ) +
+      ggplot2::labs(
+        title = stringr::str_to_title(stringr::str_split_i(item, "_", 1)),
+        fill  = "Food group"
+      ) +
+      ggplot2::scale_fill_brewer(palette = "Set3", guide = "legend") +
+      ggplot2::guides(fill = ggplot2::guide_legend(
+        title.position = "top",
+        label.position = "right",
+        keywidth  = grid::unit(1.2, "cm"),
+        keyheight = grid::unit(0.5, "cm"),
+        ncol = 2
       )) +
-      geom_treemap() +
-      geom_treemap_text( colour = "darkblue", place = "topleft", alpha = 0.6,
-                         grow = FALSE,min.size = 6)+
-      labs(title =
-             stringr::str_to_title(stringr::str_split_i(item,
-                                                        "\\_",
-                                                        1)),
-           
-      )+
-      scale_fill_brewer(palette = "Set3")+
-      # guides(fill=guide_legend())+
-      theme(legend.position="bottom",
-            legend.spacing.x = unit(0, 'cm'))+
-      guides(fill = guide_legend(title="Food group",label.position = "bottom"))
-    # theme(legend.direction = "horizontal", legend.position = "bottom")+
-    # guides(fill = "none")+
-    theme_ipsum()
+      hrbrthemes::theme_ipsum() +
+      ggplot2::theme(
+        legend.position    = "bottom",
+        legend.spacing.x   = grid::unit(0.2, "cm"),
+        legend.key.size    = grid::unit(0.5, "cm"),
+        legend.text        = ggplot2::element_text(size = 10),
+        legend.box.spacing = grid::unit(0.2, "cm")
+      ) +
+      ggplot2::theme(aspect.ratio = 1)   # <-- make panel square
+    
     mn_fg_plots[[item]] <- p1
   }
-  return(mn_fg_plots)
+  
+  mn_fg_plots
 }
+
+
+
 
 nat_fg<-state_prop_boxes()
 
